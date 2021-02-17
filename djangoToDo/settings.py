@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'todo.apps.TodoConfig'
+    'authentication',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -49,7 +51,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'djangoToDo.urls'
 
 TEMPLATES = [
@@ -81,12 +83,28 @@ DATABASES = {
     }
 }
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     )
+# }
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES':
+        ('rest_framework.permissions.AllowAny',),
+        'DEFAULT_AUTHENTICATION_CLASSES':
+            ('rest_framework_simplejwt.authentication.JWTAuthentication',
+             'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+             'rest_framework.authentication.SessionAuthentication',
+             'rest_framework.authentication.BasicAuthentication',), }
+
+
+#OVERRIDING JWT SETTINGS
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=5184000),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=60)
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
