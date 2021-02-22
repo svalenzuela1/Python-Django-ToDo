@@ -63,7 +63,7 @@ class TaskItems(generics.ListCreateAPIView):
         except Task.DoesNotExist:
             raise ValidationError('No Access To This Task')
 
-    #POST ITEM
+    #POST TASK
     def create(self, request, *args, **kwargs):
         try:
             if self.request.user.tasks.get(pk=self.request.data['task']):
@@ -78,7 +78,7 @@ class TaskItems(generics.ListCreateAPIView):
 class OneItem(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ItemSerializer
-
+#GET ALL ITEMS
     def get_queryset(self):
         try:
             if self.kwargs.get('task_pk') and self.kwargs.get('pk'):
@@ -91,6 +91,16 @@ class OneItem(generics.RetrieveUpdateDestroyAPIView):
                 return queryset
         except Task.DoesNotExist:
             raise ValidationError("Item Doesn't Exist, Try Again")
+#POST ITEMS
+    def create(self, request, *args, **kwargs):
+        try:
+            if self.request.user.tasks.get(pk=self.request.data['item']):
+                return super().create(request)
+        except Task.DoesNotExist:
+            raise ValidationError('Not Able To Add Item')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
     def update(self, request, *args, **kwargs):
