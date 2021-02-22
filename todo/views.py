@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import generics, viewsets, status
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.exceptions import (ValidationError, PermissionDenied)
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -31,6 +32,13 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            if self.request.user.item.get(pk=self.request.data['task']):
+                return super().update(request, *args, **kwargs)
+        except Item.DoesNotExist:
+            raise ValidationError('Failure To Update Item In Task')
 
     #DELETE TASK
     def destroy(self, request, *args, **kwargs):
@@ -64,12 +72,12 @@ class TaskItems(generics.ListCreateAPIView):
             raise ValidationError('Task Does Not Exist')
 
     #POST TASK
-    def create(self, request, *args, **kwargs):
-        try:
-            if self.request.user.tasks.get(pk=self.request.data['task']):
-                return super().create(request)
-        except Task.DoesNotExist:
-            raise ValidationError('Not Able To Add Within Task Selected')
+    # def create(self, request, *args, **kwargs):
+    #     try:
+    #         if self.request.user.tasks.get(pk=self.request.data['task']):
+    #             return super().create(request)
+    #     except Task.DoesNotExist:
+    #         raise ValidationError('Not Able To Add Within Task Selected')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -82,9 +90,9 @@ class OneItem(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         try:
             if self.kwargs.get('task_pk') and self.kwargs.get('pk'):
-                item = Task.objects.get(pk=self.kwargs['task_pk'])
+                task = Task.objects.get(pk=self.kwargs['task_pk'])
                 queryset = Item.objects.filter(
-                    item=item,
+                    task=task,
                     user=self.request.user,
                     pk=self.kwargs['pk']
                 )
@@ -93,8 +101,63 @@ class OneItem(generics.RetrieveUpdateDestroyAPIView):
         except Item.DoesNotExist:
             raise ValidationError("Item Doesn't Exist, Try Again")
 
+
+    # def create(self, request, *args, **kwargs):
+    #     try:
+    #         return super().create(request, *args, **kwargs)
+    #
+    #     except request.user.is_anonymous:
+    #
+    #         raise PermissionDenied("Only logged in users can create Items")
+    #
+    #
+    # def perform_create(self, serializer):
+    #     serializer.save(user=self.request.user)
+    #
+    #
+    # def destroy(self, request, *args, **kwargs):
+    #
+    #     item = Item.objects.get(pk=self.kwargs["pk"])
+    #
+    #     try:
+    #         return super().destroy(request, *args, **kwargs)
+    #
+    #     except request.user != item.user:
+    #         raise PermissionDenied(
+    #             "You do not have the access to delete this item"
+    #         )
+
+
 class ItemViewSet(viewsets.ModelViewSet):
+# class ItemViewSet(GenericAPIView):
     permission_classes = (IsAuthenticated,)
+
+    def  get_serializer_class(self):
+
+            """
+           Return the class to use for the serializer.
+           Defaults to using `self.serializer_class`.
+
+           You may want to override this if you need to provide different
+           serializations depending on the incoming request.
+
+           (Eg. admins get full serialization, others get basic serialization)
+           """
+
+
+            assert (
+                self.serializer_class is not None
+                or self.serializer_class_mapping is not None
+            ), (
+        "'%s' should either include a `serializer_class` attribute or "
+        "a `serializer_class_mapping` attribute, "
+        "or override the `get_serializer_class()` method." % self.__class__.__name__
+            )
+
+            if self.serializer_class_mapping:
+                return self.serializer_class_mapping[self.request.method]
+            return self.serializer_class
+
 
     def get_queryset(self):
         try:
@@ -107,7 +170,9 @@ class ItemViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         try:
             return super().create(request, *args, **kwargs)
+
         except request.user.is_anonymous:
+
             raise PermissionDenied("Only logged in users can create Items")
 
 
