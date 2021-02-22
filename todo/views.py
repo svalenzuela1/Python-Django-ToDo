@@ -36,7 +36,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         task = Task.objects.get(pk=self.kwargs['pk'])
         if not request.user == task.user:
-            raise PermissionDenied('Failed To Delete Task')
+            raise PermissionDenied('You are not authorized to delete task')
 
         super().destroy(request, *args, **kwargs)
         return Response({
@@ -61,7 +61,7 @@ class TaskItems(generics.ListCreateAPIView):
                 else:
                     return queryset
         except Task.DoesNotExist:
-            raise ValidationError('No Access To This Task')
+            raise ValidationError('Task Does Not Exist')
 
     #POST TASK
     def create(self, request, *args, **kwargs):
@@ -77,45 +77,79 @@ class TaskItems(generics.ListCreateAPIView):
 
 class OneItem(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = ItemSerializer
+
 #GET ALL ITEMS
     def get_queryset(self):
         try:
             if self.kwargs.get('task_pk') and self.kwargs.get('pk'):
-                task = Task.objects.get(pk=self.kwargs['task_pk'])
+                item = Task.objects.get(pk=self.kwargs['task_pk'])
                 queryset = Item.objects.filter(
-                    task=task,
+                    item=item,
                     user=self.request.user,
                     pk=self.kwargs['pk']
                 )
                 return queryset
-        except Task.DoesNotExist:
+
+        except Item.DoesNotExist:
             raise ValidationError("Item Doesn't Exist, Try Again")
-#POST ITEMS
+
+class ItemViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        try:
+            queryset = Item.objects.all().filter(user=self.request.user)
+            return queryset
+        except Item.DoesNotExist:
+            raise ValidationError("Item Does Not Exist. Try Again")
+
+
     def create(self, request, *args, **kwargs):
         try:
-            if self.request.user.tasks.get(pk=self.request.data['item']):
-                return super().create(request)
-        except Task.DoesNotExist:
-            raise ValidationError('Not Able To Add Item')
+            return super().create(request, *args, **kwargs)
+        except request.user.is_anonymous:
+            raise PermissionDenied("Only logged in users can create Items")
+
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
-    def update(self, request, *args, **kwargs):
-        try:
-            if self.request.user.tasks.get(pk=self.request.data['task']):
-                return super().update(request, *args, **kwargs)
-        except Task.DoesNotExist:
-            raise ValidationError('Failure To Update Item In Task')
-
     def destroy(self, request, *args, **kwargs):
+
+        item = Item.objects.get(pk=self.kwargs["pk"])
+
         try:
-            if self.request.user.tasks.get(pk=self.kwargs['task_pk']):
-                super().destroy(request, *args, **kwargs)
-                return Response({
-                    "message": "Item Deleted."
-                })
-        except Task.DoesNotExist:
-            raise ValidationError('Failure To Delete Item In Task')
+            return super().destroy(request, *args, **kwargs)
+
+        except request.user != item.user:
+            raise PermissionDenied(
+                "You do not have the access to delete this item"
+            )
+# #POST ITEMS
+#     def create(self, request, *args, **kwargs):
+#         try:
+#             if self.request.user.item.get(pk=self.request.data['item_pk']):
+#                 return super().create(request)
+#         except Item.DoesNotExist:
+#             raise ValidationError('Not Able To Add Item')
+#
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+#
+#
+#     def update(self, request, *args, **kwargs):
+#         try:
+#             if self.request.user.item.get(pk=self.request.data['task']):
+#                 return super().update(request, *args, **kwargs)
+#         except Item.DoesNotExist:
+#             raise ValidationError('Failure To Update Item In Task')
+#
+#     def destroy(self, request, *args, **kwargs):
+#         try:
+#             if self.request.user.item.get(pk=self.kwargs['item_pk']):
+#                 super().destroy(request, *args, **kwargs)
+#                 return Response({
+#                     "message": "Item Deleted."
+#                 })
+#         except Item.DoesNotExist:
+#             raise ValidationError('Failure To Delete Item In Task')
