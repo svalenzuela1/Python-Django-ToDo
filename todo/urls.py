@@ -9,7 +9,7 @@ router.register(r'items', ItemViewSet, basename='items')
 
 custom_urlpatterns = [
     url(r'tasks/(?P<task_pk>\d+)/items$', TaskItems.as_view(), name='task_items'),
-    url(r'tasks/(?P<task_pk>\d+)/items/(?P<pk>\d+)$', OneItem.as_view(), name='one_item'),
+    url(r'tasks/(?P<task_pk>\d+)/items/(?P<pk>\d+)$', OneItem.as_view(), name='one_item')
     # url(r'tasks/items/', ItemViewSet.as_view(), name='item')
     # url(r'tasks/(?P<task_pk>\d+)/items/(?P<pk>\d+)$', TaskViewSet.as_view())
 ]
