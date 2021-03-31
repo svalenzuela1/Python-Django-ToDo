@@ -53,7 +53,7 @@ class TaskItems(generics.ListCreateAPIView):
     serializer_class = ItemSerializer
 
     #GET ALL ITEMS FROM TASK
-    def get_queryset(self):
+    def queryset(self):
         # try:
         if self.kwargs.get('task_pk'):
             task = Task.objects.get(pk=self.kwargs["task_pk"])
